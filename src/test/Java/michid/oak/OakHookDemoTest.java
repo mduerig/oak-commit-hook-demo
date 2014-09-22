@@ -13,6 +13,10 @@
  */
 package michid.oak;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
+import javax.jcr.Node;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -27,27 +31,44 @@ import org.junit.Test;
 public class OakHookDemoTest {
 
     private Repository repository;
+    private Session session;
+    private Node root;
 
     @Before
-    public void setup() {
+    public void setup() throws RepositoryException {
         repository = new Jcr()
-            .with(new OakHookDemo())
+            .with(new OakHookDemo("/foo/bar"))
             .createRepository();
+        session = repository.login(new SimpleCredentials("admin", "admin".toCharArray()));
+        root = session.getRootNode();
     }
 
     @After
     public void tearDown() {
+        session.logout();
         if (repository instanceof JackrabbitRepository) {
             ((JackrabbitRepository) repository).shutdown();
         }
     }
 
     @Test
-    public void test() throws RepositoryException {
-        Session session = repository.login(new SimpleCredentials("admin", "admin".toCharArray()));
-        session.getRootNode().addNode("new node " + System.currentTimeMillis());
+    public void testExtraContent() throws RepositoryException {
+        root.addNode("foo").addNode("bar").addNode("two");
         session.save();
-        session.logout();
+
+        assertFalse(root.getNode("foo").hasProperty("added_at"));
+        assertFalse(root.getNode("foo/bar").hasProperty("added_at"));
+        assertTrue(root.getNode("foo/bar/two").hasProperty("added_at"));
+    }
+
+    @Test
+    public void testNoExtraContent() throws RepositoryException {
+        root.addNode("foo").addNode("baz").addNode("two");
+        session.save();
+
+        assertFalse(root.getNode("foo").hasProperty("added_at"));
+        assertFalse(root.getNode("foo/baz").hasProperty("added_at"));
+        assertFalse(root.getNode("foo/baz/two").hasProperty("added_at"));
     }
 
 }
