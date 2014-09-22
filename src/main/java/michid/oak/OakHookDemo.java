@@ -13,10 +13,11 @@
  */
 package michid.oak;
 
+import static java.lang.System.currentTimeMillis;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
+import static org.apache.jackrabbit.oak.commons.PathUtils.isAncestor;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.DefaultEditor;
@@ -62,8 +63,8 @@ public class OakHookDemo implements CommitHook {
 
         @Override
         public Editor childNodeAdded(String name, NodeState after) throws CommitFailedException {
-            if (PathUtils.isAncestor(OakHookDemo.this.path, concat(path, name))) {
-                builder.child(name).setProperty("added_at", System.currentTimeMillis());
+            if (isAncestor(OakHookDemo.this.path, concat(path, name))) {
+                builder.child(name).setProperty("added_at", currentTimeMillis());
             }
             return new DemoEditor(concat(path, name), builder.child(name));
         }
